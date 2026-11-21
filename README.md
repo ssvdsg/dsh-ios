@@ -110,6 +110,22 @@ First launch imports the guest image (~30 s, progress on the overlay); later
 launches take a few seconds. Configure a DeepSeek API key in the harness when
 prompted; it is stored with the harness settings in the guest.
 
+### Build an unsigned IPA with GitHub Actions
+
+If you do not have a Mac, push this repository to GitHub and run **Actions →
+Build unsigned IPA → Run workflow**. The workflow builds the iSH-ARM64
+emulator and guest image, archives the app with code signing disabled, and
+uploads `DSH-unsigned.ipa` plus its SHA-256 as an artifact. It does not sign,
+install, or touch a device: sign the IPA with your own on-device tool before
+installing it.
+
+Use `xcode-27` when the runner image is available (it is arm64 and carries
+Xcode 27), otherwise choose `macos-26` or `macos-15`. Change the `bundle_id`
+input if your signer needs a unique identifier. The archive is built without
+entitlements; if your signer instead applies `app/DSH.entitlements`, remove the
+HealthKit entry as well — the stale Private Cloud Compute entitlement has
+already been removed. The app targets iOS/iPadOS 16 or later.
+
 ### Model providers
 
 The standard DeepSeek route works unchanged. The image also pre-declares

@@ -86,6 +86,19 @@ make run TEAM=XXXXXXXXXX DEVICE=<udid>   # 构建、签名、安装、启动到 
 首次启动会导入 guest 镜像（约 30 秒，启动页有进度），之后启动只需几秒。首次使用模型时，
 请按 harness 的提示配置 DeepSeek API key；它会随 harness 设置保存在 guest 中。
 
+### 用 GitHub Actions 构建未签名 IPA
+
+如果没有 Mac，可以把仓库推到 GitHub，然后运行 **Actions → Build unsigned
+IPA → Run workflow**。工作流会构建 iSH-ARM64 模拟器和 guest 镜像，在关闭代码
+签名的情况下归档 app，并上传 `DSH-unsigned.ipa` 及其 SHA-256 作为 artifact。
+它不会签名、安装或连接设备，下载后请用你手机上的签名工具自行签名安装。
+
+runner 有 `xcode-27` 时优先选它（arm64，自带 Xcode 27），否则选 `macos-26`
+或 `macos-15`。如果你的签名工具需要唯一标识，修改 `bundle_id` 输入。归档时
+不会写入 entitlements；如果你的签名工具会套用 `app/DSH.entitlements`，请把
+HealthKit 项也去掉——已经失效的 Private Cloud Compute entitlement 已被移除。
+app 支持 iOS/iPadOS 16 及以上。
+
 ### 模型提供方
 
 标准 DeepSeek 路由保持不变。镜像还预置了 **OpenCode Go**（provider id 为
