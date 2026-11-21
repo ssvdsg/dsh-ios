@@ -81,7 +81,7 @@ stock dsh web UI.</sub>
 
 ## Quick start
 
-**Prerequisites:** macOS on Apple Silicon, Xcode 27, iOS/iPadOS 16 or later, `brew install meson ninja lld`.
+**Prerequisites:** macOS on Apple Silicon, Xcode 27, iOS/iPadOS 16 or later, `brew install meson ninja lld libarchive`.
 (`ld.lld` builds the guest VDSO; without it the guest cannot run),
 Node.js ≥ 20 + npm, the `xcodeproj` Ruby gem (`gem install xcodeproj`, or
 CocoaPods), an Apple developer team for device signing.

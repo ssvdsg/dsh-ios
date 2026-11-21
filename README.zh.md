@@ -66,7 +66,7 @@ Alpine Linux 镜像（含 Node.js 22 和 `@deepseek-ai/dsh`），托管 `dsh web
 
 ## 快速开始
 
-**环境要求：** Apple Silicon 的 macOS，Xcode 27，iOS/iPadOS 16 或更高版本，`brew install meson ninja lld`。
+**环境要求：** Apple Silicon 的 macOS，Xcode 27，iOS/iPadOS 16 或更高版本，`brew install meson ninja lld libarchive`。
 （`ld.lld` 用于构建 guest 的 VDSO，缺少它 guest 无法运行），Node.js ≥ 20 + npm，
 `xcodeproj` Ruby gem（`gem install xcodeproj`，或随 CocoaPods 一起），以及一个 Apple 开发者团队用于真机签名。
 
