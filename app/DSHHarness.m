@@ -14,6 +14,12 @@ static NSString *const kExpectedStartupKey = @"DSHExpectedStartupDuration";
 static const NSTimeInterval kDefaultExpectedStartup = 25;
 static NSString *const kRecentFailuresKey = @"DSHHarnessRecentFailures.1";
 static const NSTimeInterval kPersistentFailureWindow = 10 * 60;
+// A foregrounded guest resumes slowly under emulation. Five seconds was short
+// enough that a healthy server could miss the probe and get restarted, which
+// reloads the whole web UI. Allow the guest to wake up first.
+static const NSTimeInterval kForegroundHealthCheckTimeout = 15;
+static const NSUInteger kForegroundHealthCheckAttempts = 2;
+static const NSTimeInterval kForegroundHealthCheckRetryDelay = 1.5;
 
 NSString *DSHHarnessStateName(DSHHarnessState state) {
     switch (state) {
@@ -44,6 +50,8 @@ NSString *DSHHarnessStateName(DSHHarnessState state) {
 @property (nonatomic) BOOL healthCheckInFlight;
 @property (nonatomic) NSMutableArray<void (^)(BOOL)> *healthCheckCompletions;
 @property (nonatomic) BOOL tracksPersistentFailures;
+- (void)probeAliveAtURL:(NSURL *)url generation:(NSUInteger)generation attempt:(NSUInteger)attempt;
+- (void)finishHealthCheckWithAlive:(BOOL)alive generation:(NSUInteger)generation;
 @end
 
 @implementation DSHHarness
@@ -134,8 +142,9 @@ NSString *DSHHarnessStateName(DSHHarnessState state) {
     self.consecutiveCrashes = 0;
     [self clearPersistentFailures];
     self.restartCount++;
-    // Give the old process a moment to release the port.
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t) (0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    // Give the old process a moment to release the port so the same loopback
+    // origin is reused. A changed origin makes WKWebView reload the whole UI.
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t) (1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         if (!self.userStopped)
             [self launch];
     });
@@ -296,24 +305,55 @@ NSString *DSHHarnessStateName(DSHHarnessState state) {
     if (self.healthCheckInFlight)
         return;
     self.healthCheckInFlight = YES;
-    NSUInteger generation = self.launchGeneration;
-    NSURL *url = self.baseURL;
+    [self probeAliveAtURL:self.baseURL generation:self.launchGeneration attempt:1];
+}
+
+/// Retry a foreground probe before declaring the server dead. The guest is
+/// suspended while the app is in the background, so its first answer after a
+/// resume can arrive well after five seconds; restarting on that transient
+/// miss is what made every app switch look like a full reload.
+- (void)probeAliveAtURL:(NSURL *)url generation:(NSUInteger)generation attempt:(NSUInteger)attempt {
     __weak typeof(self) weakSelf = self;
-    [DSHReadinessProbe checkURL:url timeout:5 completion:^(BOOL alive) {
+    [DSHReadinessProbe checkURL:url timeout:kForegroundHealthCheckTimeout completion:^(BOOL alive) {
         typeof(self) self = weakSelf;
-        if (self == nil)
+        if (self == nil || !self.healthCheckInFlight)
             return;
-        self.healthCheckInFlight = NO;
-        NSArray<void (^)(BOOL)> *completions = [self.healthCheckCompletions copy];
-        [self.healthCheckCompletions removeAllObjects];
-        BOOL stillCurrent = generation == self.launchGeneration && self.state == DSHHarnessStateReady;
-        if (!alive && stillCurrent) {
-            [self.log append:@"[dsh-ios] health check failed; restarting server"];
-            [self restart];
+        if (alive || attempt >= kForegroundHealthCheckAttempts) {
+            [self finishHealthCheckWithAlive:alive generation:generation];
+            return;
         }
-        for (void (^callback)(BOOL) in completions)
-            callback(alive && stillCurrent);
+        // A state change (exit, manual restart) makes this probe stale; finish
+        // it as failed so callers do not wait forever, but do not restart.
+        if (generation != self.launchGeneration || self.state != DSHHarnessStateReady) {
+            [self finishHealthCheckWithAlive:NO generation:generation];
+            return;
+        }
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t) (kForegroundHealthCheckRetryDelay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            typeof(self) self = weakSelf;
+            if (self == nil || !self.healthCheckInFlight)
+                return;
+            if (generation != self.launchGeneration || self.state != DSHHarnessStateReady) {
+                [self finishHealthCheckWithAlive:NO generation:generation];
+                return;
+            }
+            [self probeAliveAtURL:url generation:generation attempt:attempt + 1];
+        });
     }];
+}
+
+- (void)finishHealthCheckWithAlive:(BOOL)alive generation:(NSUInteger)generation {
+    if (!self.healthCheckInFlight)
+        return;
+    self.healthCheckInFlight = NO;
+    NSArray<void (^)(BOOL)> *completions = [self.healthCheckCompletions copy];
+    [self.healthCheckCompletions removeAllObjects];
+    BOOL stillCurrent = generation == self.launchGeneration && self.state == DSHHarnessStateReady;
+    if (!alive && stillCurrent) {
+        [self.log append:@"[dsh-ios] health check failed after retries; restarting server"];
+        [self restart];
+    }
+    for (void (^callback)(BOOL) in completions)
+        callback(alive && stillCurrent);
 }
 
 @end

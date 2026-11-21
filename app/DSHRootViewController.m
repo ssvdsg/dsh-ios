@@ -267,7 +267,10 @@ static NSString *const kDSHUserAgentSuffix = @" DSH-iOS/1.0";
         case DSHHarnessStateRestarting:
             [self.overlay showStarting:@"Restarting the harness…"];
             [self.overlay setProgressStartedAt:nil expected:0];
-            self.pageLoaded = NO;
+            // Keep the loaded page. When the restart lands on the same port
+            // the web client reconnects; forcing pageLoaded=NO here is what
+            // turned every restart into a full reload. A changed port still
+            // reloads in the Ready case below.
             break;
         case DSHHarnessStateReady:
             if (!self.pageLoaded || self.loadedPort != h.port)
@@ -288,6 +291,12 @@ static NSString *const kDSHUserAgentSuffix = @" DSH-iOS/1.0";
     NSURL *url = DSHHarness.shared.baseURL;
     if (url == nil)
         return;
+    // Reload the page the user was on, not the home route, when it is still
+    // served by this same harness origin. A web-process termination or a
+    // same-port server restart should not throw away the open session.
+    NSURL *current = self.webView.URL;
+    if (current != nil && [self isHarnessURL:current] && [current.port isEqual:url.port])
+        url = current;
     [self.overlay showStarting:@"Loading the interface…"];
     [self.overlay setProgressStartedAt:nil expected:0];
     self.loadedPort = DSHHarness.shared.port;
