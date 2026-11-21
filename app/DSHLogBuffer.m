@@ -86,7 +86,7 @@ NSNotificationName const DSHLogBufferDidChangeNotification = @"DSHLogBufferDidCh
 
 + (NSString *)redactedLine:(NSString *)line {
     NSMutableString *safe = [line mutableCopy];
-    NSArray<NSString *> *keys = @[@"DEEPSEEK_API_KEY", @"DSH_HOST_BRIDGE_TOKEN", @"Authorization: Bearer"];
+    NSArray<NSString *> *keys = @[@"DEEPSEEK_API_KEY", @"OPENCODE_API_KEY", @"DSH_HOST_BRIDGE_TOKEN", @"Authorization: Bearer"];
     for (NSString *key in keys) {
         NSRange search = NSMakeRange(0, safe.length);
         while (search.length > 0) {

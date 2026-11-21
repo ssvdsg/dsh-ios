@@ -3,6 +3,16 @@
 # The host bridge plugin exposes the DSH app's iOS capabilities as dsh tools.
 # It registers nothing when DSH_HOST_BRIDGE_URL/_TOKEN are absent, so the same
 # guest image still runs outside the app (CLI emulator, tests).
+- id: llm-pi-ai
+  config:
+    providers:
+      # OpenCode Go, pre-declared so its provider card exists on first launch.
+      # The image's pi-ai catalog carries its DeepSeek V4.1 Flash, V4 Pro and
+      # V4 Flash models. The key is write-only: enter it in Settings → Models
+      # (stored in the guest's .credentials.yaml) or supply OPENCODE_API_KEY
+      # in the launch environment.
+      opencode-go:
+        apiKeyEnv: OPENCODE_API_KEY
 - insert:
     - id: host-bridge
       name: /usr/local/lib/dsh-plugins/dsh-host-bridge/index.js

@@ -55,7 +55,7 @@ Alpine Linux 镜像（含 Node.js 22 和 `@deepseek-ai/dsh`），托管 `dsh web
 
 ## 特性
 
-- **标准 DeepSeek API**——Alpine 3.21、Node 22 和 dsh 都在 app 内运行；模型推理使用 DeepSeek API，API key 由 harness 管理。
+- **标准 DeepSeek API 与 OpenCode Go**——Alpine 3.21、Node 22 和 dsh 都在 app 内运行；模型推理可使用 DeepSeek API 或 OpenCode Go，API key 由 harness 管理。
 - **原汁原味的 harness 界面**——dsh 自己的 Web 应用通过本机回环端口提供：会话、工作区、工具、权限预设、设置。
 - **随时可用的 shell**——DSH 状态栏的 `>_` 打开同一 guest 里的 Alpine 终端（`apk add`、`npm i -g`、查看 `~/.dsh`）；`⋯` 菜单提供 重新加载 / 服务日志 / 重启 Harness / 在 Safari 打开 / 关于。
 - **受监督的服务进程**——自动选择空闲端口、HTTP 就绪探测、崩溃退避重启、回到前台时健康检查、启动页实时日志。
@@ -85,6 +85,19 @@ make run TEAM=XXXXXXXXXX DEVICE=<udid>   # 构建、签名、安装、启动到 
 
 首次启动会导入 guest 镜像（约 30 秒，启动页有进度），之后启动只需几秒。首次使用模型时，
 请按 harness 的提示配置 DeepSeek API key；它会随 harness 设置保存在 guest 中。
+
+### 模型提供方
+
+标准 DeepSeek 路由保持不变。镜像还预置了 **OpenCode Go**（provider id 为
+`opencode-go`），其目录包含 **DeepSeek V4.1 Flash**、V4 Pro 和 V4 Flash。
+打开**设置 → 模型 → OpenCode Go**，粘贴 OpenCode API key，然后在输入框的模型
+菜单中选择模型即可。密钥是只写的，保存在 guest 的 `~/.dsh/.credentials.yaml`；
+在 CLI/模拟器里运行时，这条路由也会读取环境变量 `OPENCODE_API_KEY`。
+
+该提供方声明在 `rootfs/overlay/usr/local/share/dsh/home.patch.yml` 中，因此升级
+app 后仍然保留。模型列表来自 guest 内的 `@earendil-works/pi-ai` 目录，版本在
+`rootfs/staging/package.json` 中固定为 1.1.0：该版本包含 DeepSeek V4.1 Flash，
+并会按 harness 的会话 ID 自动加上 OpenCode 要求的 `x-opencode-session` 请求头。
 
 ## 工作原理
 

@@ -4,5 +4,8 @@
   "description": "Pins the @deepseek-ai/dsh tree that build-rootfs.sh installs into the guest (linux/arm64/musl).",
   "dependencies": {
     "@deepseek-ai/dsh": "0.1.0-rc.7"
+  },
+  "overrides": {
+    "@earendil-works/pi-ai": "1.1.0"
   }
 }

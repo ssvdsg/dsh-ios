@@ -25,6 +25,23 @@ const s=require('sharp');
 s({create:{width:8,height:8,channels:3,background:'#f00'}}).resize(4,4).png().toBuffer().then(b=>process.exit(b.length>20?0:1)).catch(()=>process.exit(1));
 " 2>/dev/null || die "sharp cannot encode a PNG"
 step "sharp encodes"
+node --input-type=module -e "
+import { getBuiltinModels } from '@earendil-works/pi-ai/providers/all';
+const ids = getBuiltinModels('opencode-go').map(model => model.id);
+process.exit(ids.includes('deepseek-v4.1-flash') ? 0 : 1);
+" 2>/dev/null || die "opencode-go catalog has no deepseek-v4.1-flash"
+step "opencode-go catalog has deepseek-v4.1-flash"
+node --input-type=module -e "
+import { withOpenCodeSessionHeader } from '@earendil-works/pi-ai/providers/opencode-headers';
+let headers;
+const wrapped = withOpenCodeSessionHeader({
+  stream(_model, _context, options) { headers = options.headers; },
+  streamSimple() {},
+});
+wrapped.stream(null, null, { sessionId: 'selftest-session', headers: {} });
+process.exit(headers?.['x-opencode-session'] === 'selftest-session' ? 0 : 1);
+" 2>/dev/null || die "opencode-go does not send x-opencode-session"
+step "opencode-go sends x-opencode-session"
 [ -f /root/.dsh/profiles/web/cordis.patch.yml ] || die "profile patch missing"
 step "profile patch present"
 echo "SELFTEST OK"

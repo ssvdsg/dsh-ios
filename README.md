@@ -59,8 +59,9 @@ stock dsh web UI.</sub>
 
 ## Features
 
-- **Standard DeepSeek API** — Alpine 3.21, Node 22 and dsh run inside the app;
-  model inference uses DeepSeek's API and the harness manages its API key.
+- **Standard DeepSeek API and OpenCode Go** — Alpine 3.21, Node 22 and dsh run
+  inside the app; model inference uses DeepSeek's API or an OpenCode Go key, and
+  the harness manages either credential.
 - **The real harness UI** — dsh's own web app served on loopback: sessions,
   workspaces, tools, permission presets, settings.
 - **A shell when you want one** — `>_` in the DSH bar opens an Alpine terminal
@@ -108,6 +109,21 @@ make run TEAM=XXXXXXXXXX DEVICE=<udid>   # build, sign, install, launch on the i
 First launch imports the guest image (~30 s, progress on the overlay); later
 launches take a few seconds. Configure a DeepSeek API key in the harness when
 prompted; it is stored with the harness settings in the guest.
+
+### Model providers
+
+The standard DeepSeek route works unchanged. The image also pre-declares
+**OpenCode Go** (provider id `opencode-go`), whose catalog includes **DeepSeek
+V4.1 Flash**, V4 Pro and V4 Flash. Open **Settings → Models → OpenCode Go**,
+paste your OpenCode API key, then pick the model in the composer. The key is
+write-only and lives in the guest's `~/.dsh/.credentials.yaml`; for CLI/emulator
+runs the same route also reads `OPENCODE_API_KEY` from the environment.
+
+The provider is declared in `rootfs/overlay/usr/local/share/dsh/home.patch.yml`,
+so a device upgrade keeps it. The model list comes from the guest's
+`@earendil-works/pi-ai` catalog, pinned in `rootfs/staging/package.json` to
+1.1.0: that release carries DeepSeek V4.1 Flash and adds OpenCode's required
+`x-opencode-session` routing header from the harness session id.
 
 ## How it works
 
