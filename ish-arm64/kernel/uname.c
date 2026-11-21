@@ -1,4 +1,5 @@
 #include <sys/utsname.h>
+#include <stdio.h>
 #include <string.h>
 #include "kernel/calls.h"
 #include "platform/platform.h"
@@ -22,16 +23,19 @@ void do_uname(struct uname *uts) {
         hostname = uname_hostname_override;
 
     memset(uts, 0, sizeof(struct uname));
-    strcpy(uts->system, "Linux");
-    strcpy(uts->hostname, hostname);
-    strcpy(uts->release, "4.20.69-ish");
+    // utsname fields are fixed 65-byte buffers. Host names on CI runners and
+    // some devices are longer, and strcpy into the struct trips fortified
+    // stpcpy/__chk_fail on newer SDKs; truncate instead.
+    snprintf(uts->system, sizeof(uts->system), "Linux");
+    snprintf(uts->hostname, sizeof(uts->hostname), "%s", hostname);
+    snprintf(uts->release, sizeof(uts->release), "4.20.69-ish");
     snprintf(uts->version, sizeof(uts->version), "%s %s %s", uname_version, __DATE__, __TIME__);
 #if defined(GUEST_ARM64)
-    strcpy(uts->arch, "aarch64");
+    snprintf(uts->arch, sizeof(uts->arch), "aarch64");
 #else
-    strcpy(uts->arch, "i686");
+    snprintf(uts->arch, sizeof(uts->arch), "i686");
 #endif
-    strcpy(uts->domain, "(none)");
+    snprintf(uts->domain, sizeof(uts->domain), "(none)");
 }
 
 dword_t sys_uname(addr_t uts_addr) {
