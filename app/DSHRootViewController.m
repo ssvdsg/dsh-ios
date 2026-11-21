@@ -35,6 +35,7 @@ static NSString *const kDSHUserAgentSuffix = @" DSH-iOS/1.0";
 @property (nonatomic) BOOL pageLoaded;
 @property (nonatomic) NSUInteger pageLoadGeneration;
 @property (nonatomic) NSMutableDictionary<NSValue *, NSURL *> *downloadDestinations;
+- (BOOL)isHarnessURL:(NSURL *)url;
 @end
 
 @implementation DSHRootViewController
